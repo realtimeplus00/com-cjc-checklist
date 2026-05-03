@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>체크 리스트</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #243050;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --accent: #3b82f6;
+
+    --up-max:   #ef4444;
+    --up-high:  #f97316;
+    --up-touch: #eab308;
+    --dn-touch: #22d3ee;
+    --dn-high:  #6366f1;
+    --dn-max:   #8b5cf6;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  header h1 span { color: var(--accent); }
+
+  /* ── 날짜 입력 ── */
+  .date-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .date-row label { font-size: 12px; color: var(--text-dim); }
+  .date-row input[type="date"] {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    cursor: pointer;
+    width: 155px;   /* 날짜 박스 너비 충분히 확보 */
+    min-width: 155px;
+  }
+  .date-row input[type="date"]:focus { border-color: var(--accent); }
+  /* 날짜 색상 보정 (webkit) */
+  .date-row input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+  }
+
+  /* ── 대상 설정 패널 ── */
+  .setup-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .setup-panel h2 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .stock-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stock-input-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  .stock-input-wrap label {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .stock-input-wrap input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .stock-input-wrap input::placeholder { color: var(--text-dim); font-weight: 400; }
+  .stock-input-wrap input:focus { border-color: var(--accent); }
+
+  /* 삭제 버튼 */
+  .btn-remove-stock {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color .2s;
+  }
+  .btn-remove-stock:hover { color: #ef4444; }
+
+  .setup-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-apply {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-apply:hover { opacity: .85; }
+
+  .btn-add-stock {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-add-stock:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── 체크 테이블 ── */
+  .check-section { display: flex; flex-direction: column; gap: 16px; }
+
+  .stock-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .stock-card:hover { border-color: #334a7a; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .stock-name {
+    font-size: 17px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    color: #fff;
+    letter-spacing: 1px;
+  }
+  .stock-idx {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── 방향 버튼 ── */
+  .dir-buttons {
+    display: flex;
+    gap: 4px;
+    padding: 12px 14px;
+    flex-wrap: nowrap;
+  }
+  .dir-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 2px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    font-size: clamp(10px, 1.8vw, 12px);
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+    background: var(--bg);
+    color: var(--text-dim);
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 순서 변경: dn-max, dn-high, dn-touch, up-touch, up-high, up-max */
+  .dir-btn[data-dir="dn-max"]   { border-color: #1e1040; }
+  .dir-btn[data-dir="dn-high"]  { border-color: #1a1a40; }
+  .dir-btn[data-dir="dn-touch"] { border-color: #00c4d4; border-width: 1px; }
+  .dir-btn[data-dir="up-touch"] { border-color: #b8960a; border-width: 1px; }
+  .dir-btn[data-dir="up-high"]  { border-color: #3a2210; }
+  .dir-btn[data-dir="up-max"]   { border-color: #3a1a1a; }
+
+  .dir-btn:hover[data-dir="dn-max"]   { background: #160c30; color: var(--dn-max); }
+  .dir-btn:hover[data-dir="dn-high"]  { background: #0e0e30; color: var(--dn-high); }
+  .dir-btn:hover[data-dir="dn-touch"] { background: #001e22; color: var(--dn-touch); }
+  .dir-btn:hover[data-dir="up-touch"] { background: #1e1a00; color: var(--up-touch); }
+  .dir-btn:hover[data-dir="up-high"]  { background: #2a1200; color: var(--up-high); }
+  .dir-btn:hover[data-dir="up-max"]   { background: #2a0808; color: var(--up-max); }
+
+  /* 선택된 상태 */
+  .dir-btn.selected[data-dir="dn-max"]   { background: var(--dn-max);   color: #fff; border-color: var(--dn-max); }
+  .dir-btn.selected[data-dir="dn-high"]  { background: var(--dn-high);  color: #fff; border-color: var(--dn-high); }
+  .dir-btn.selected[data-dir="dn-touch"] { background: var(--dn-touch); color: #000; border-color: var(--dn-touch); }
+  .dir-btn.selected[data-dir="up-touch"] { background: var(--up-touch); color: #000; border-color: var(--up-touch); }
+  .dir-btn.selected[data-dir="up-high"]  { background: var(--up-high);  color: #fff; border-color: var(--up-high); }
+  .dir-btn.selected[data-dir="up-max"]   { background: var(--up-max);   color: #fff; border-color: var(--up-max); }
+
+  /* ── 비고 ── */
+  .memo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 18px 14px;
+  }
+  .memo-row label {
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .memo-row textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: vertical;
+    min-height: 38px;
+    max-height: 100px;
+    outline: none;
+    transition: border-color .2s;
+    line-height: 1.5;
+  }
+  .memo-row textarea:focus { border-color: var(--accent); }
+
+  /* ── 기록 저장/불러오기 ── */
+  .bottom-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(10,14,26,.92);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    z-index: 100;
+  }
+  .bottom-bar .status {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .btn-save, .btn-history, .btn-export {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .btn-save    { background: #22c55e; color: #000; }
+  .btn-history { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-export  { background: #0ea5e9; color: #fff; }
+  .btn-save:hover, .btn-history:hover, .btn-export:hover { opacity: .8; }
+
+  /* ── 기록 모달 ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 16px;
+    overflow-y: auto;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 700px;
+    padding: 24px;
+  }
+  .modal h2 {
+    font-size: 16px;
+    font-weight: 900;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal h2 button {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item .h-date {
+    font-size: 12px;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  .history-item .h-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .h-chip {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .h-chip.up-max   { background: var(--up-max);   color: #fff; }
+  .h-chip.up-high  { background: var(--up-high);  color: #fff; }
+  .h-chip.up-touch { background: var(--up-touch); color: #000; }
+  .h-chip.dn-touch { background: var(--dn-touch); color: #000; }
+  .h-chip.dn-high  { background: var(--dn-high);  color: #fff; }
+  .h-chip.dn-max   { background: var(--dn-max);   color: #fff; }
+  .h-chip.none     { background: var(--bg); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .history-item .h-del {
+    float: right;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .history-item .h-del:hover { color: #ef4444; border-color: #ef4444; }
+
+  .empty-msg { color: var(--text-dim); font-size: 13px; text-align: center; padding: 20px 0; }
+
+  /* ── 달력 모달 ── */
+  .cal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    z-index: 200;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 30px 16px;
+    overflow-y: auto;
+  }
+  .cal-overlay.open { display: flex; }
+  .cal-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+  }
+  .cal-modal h2 {
+    font-size: 16px;
+    font-weight: 900;
+    margin-bottom: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .cal-modal h2 button {
+    background: none; border: none; color: var(--text-dim);
+    font-size: 20px; cursor: pointer; line-height: 1;
+  }
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .cal-nav button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .cal-nav button:hover { border-color: var(--accent); }
+  .cal-nav span {
+    font-size: 15px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    color: #fff;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-day-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 4px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .cal-day-header:first-child { color: #ef6060; }
+  .cal-day-header:last-child  { color: #6091ef; }
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    cursor: default;
+    position: relative;
+    border: 1.5px solid transparent;
+    transition: border-color .15s;
+  }
+  .cal-cell.in-month { color: var(--text); }
+  .cal-cell.today {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 900;
+  }
+  /* 기록 있는 날 – 테두리 강조 */
+  .cal-cell.has-record {
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .cal-cell.has-record.today {
+    border-color: #fff;
+  }
+  /* 날짜 아래 점 */
+  .cal-cell.has-record::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .cal-cell.has-record.today::after {
+    background: #fff;
+  }
+
+  /* 반응형 */
+  @media (max-width: 480px) {
+    .dir-btn { min-width: 50px; font-size: 11px; padding: 8px 2px; }
+  }
+</style>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="체크 리스트">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./service-worker.js');
+      });
+    }
+    window.addEventListener('beforeinstallprompt',e=>{
+      e.preventDefault();
+      window._pwaE=e;
+      var b=document.createElement('div');
+      b.style='position:fixed;bottom:0;left:0;right:0;background:#ffffff;color:#fff;padding:18px;text-align:center;z-index:9999;font-size:15px;font-weight:bold;cursor:pointer;font-family:sans-serif;';
+      b.innerHTML='📲 홈화면에 앱 추가하기 · Add to Home Screen';
+      b.onclick=async function(){window._pwaE.prompt();var r=await window._pwaE.userChoice;if(r.outcome==='accepted')b.remove();};
+      document.body.appendChild(b);
+    });
+  </script>
+</head>
+<body>
+
+<header>
+  <h1>📈 <span>체크 리스트</span></h1>
+  <div class="date-row">
+    <label>체크 날짜</label>
+    <input type="date" id="checkDate">
+  </div>
+</header>
+
+<!-- 대상 설정 -->
+<div class="setup-panel">
+  <h2>대상 설정</h2>
+  <div class="stock-inputs" id="stockInputs"></div>
+  <div class="setup-actions">
+    <button class="btn-apply" onclick="applyStocks()">✔ 적용</button>
+    <button class="btn-add-stock" onclick="addStockInput()">＋ 추가</button>
+  </div>
+</div>
+
+<!-- 체크 카드 -->
+<div class="check-section" id="checkSection"></div>
+
+<!-- 하단 바 -->
+<div class="bottom-bar">
+  <span class="status" id="statusMsg">대상을 입력하고 적용을 누르세요.</span>
+  <button class="btn-history" onclick="openCalendar()">📅 달력</button>
+  <button class="btn-history" onclick="openHistory()">📋 기록 보기</button>
+  <button class="btn-export" onclick="exportCSV()">⬇ CSV 내보내기</button>
+  <button class="btn-save" onclick="saveRecord()">💾 이번 주 저장</button>
+</div>
+
+<!-- 기록 모달 -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <h2>📋 저장된 기록 <button onclick="closeHistory()">×</button></h2>
+    <div class="history-list" id="historyList"></div>
+  </div>
+</div>
+
+<!-- 달력 모달 -->
+<div class="cal-overlay" id="calModal">
+  <div class="cal-modal">
+    <h2>📅 달력 <button onclick="closeCalendar()">×</button></h2>
+    <div class="cal-nav">
+      <button onclick="calPrev()">◀</button>
+      <span id="calTitle"></span>
+      <button onclick="calNext()">▶</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
+</div>
+
+<script>
+// 버튼 순서: 하방 대 → 하방 초 → 하방 접 → 상방 접 → 상방 초 → 상방 대
+const DIRS = [
+  { key: 'dn-max',   label: '하방 대' },
+  { key: 'dn-high',  label: '하방 초' },
+  { key: 'dn-touch', label: '하방 C' },
+  { key: 'up-touch', label: '상방 C' },
+  { key: 'up-high',  label: '상방 초' },
+  { key: 'up-max',   label: '상방 대' },
+];
+
+let stocks = [];
+let records = [];
+let currentCheck = {};
+let inputCount = 7; // 현재 입력 칸 수
+
+// 달력 상태
+let calYear, calMonth;
+
+// ── 초기화 ──
+(function init() {
+  const today = new Date();
+  document.getElementById('checkDate').value = today.toISOString().slice(0, 10);
+  calYear  = today.getFullYear();
+  calMonth = today.getMonth();
+
+  try {
+    const saved = localStorage.getItem('stockTrackerData');
+    if (saved) {
+      const data = JSON.parse(saved);
+      stocks = data.stocks || [];
+      records = data.records || [];
+    }
+  } catch(e) {}
+
+  if (stocks.length) {
+    inputCount = Math.max(stocks.length, 7);
+    renderStockInputs();
+    renderCheckCards();
+  } else {
+    renderStockInputs();
+  }
+})();
+
+// ── 대상 입력 렌더 ──
+function renderStockInputs() {
+  const container = document.getElementById('stockInputs');
+  container.innerHTML = '';
+  for (let i = 0; i < inputCount; i++) {
+    appendStockInput(i, stocks[i] || '');
+  }
+}
+
+function appendStockInput(i, value) {
+  const container = document.getElementById('stockInputs');
+  const wrap = document.createElement('div');
+  wrap.className = 'stock-input-wrap';
+  wrap.id = `sw_${i}`;
+  wrap.innerHTML = `
+    <label>대상 ${i + 1}
+      <button class="btn-remove-stock" title="삭제" onclick="removeStockInput(${i})">✕</button>
+    </label>
+    <input type="text" placeholder="" maxlength="20"
+      value="${value}" id="si_${i}">
+  `;
+  container.appendChild(wrap);
+}
+
+// ── 추가 버튼 ──
+function addStockInput() {
+  const container = document.getElementById('stockInputs');
+  const i = inputCount;
+  inputCount++;
+  appendStockInput(i, '');
+}
+
+// ── 개별 삭제 ──
+function removeStockInput(i) {
+  const wrap = document.getElementById(`sw_${i}`);
+  if (wrap) wrap.remove();
+}
+
+// ── 적용 ──
+function applyStocks() {
+  const names = [];
+  // 현재 DOM에 남아있는 모든 input 읽기
+  const inputs = document.querySelectorAll('#stockInputs input[type="text"]');
+  inputs.forEach(inp => {
+    const v = inp.value.trim();
+    if (v) names.push(v);
+  });
+  if (!names.length) { alert('대상을 최소 1개 입력하세요.'); return; }
+  stocks = names;
+  currentCheck = {};
+  renderCheckCards();
+  saveLocal();
+  document.getElementById('statusMsg').textContent = `${stocks.length}개 대상 적용됨`;
+}
+
+// ── 체크 카드 렌더 ──
+function renderCheckCards() {
+  const section = document.getElementById('checkSection');
+  section.innerHTML = '';
+  stocks.forEach((name, idx) => {
+    const card = document.createElement('div');
+    card.className = 'stock-card';
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="stock-name">${name}</span>
+        <span class="stock-idx">#${idx + 1}</span>
+      </div>
+      <div class="dir-buttons" id="btns_${idx}">
+        ${DIRS.map(d => `
+          <button class="dir-btn" data-dir="${d.key}" data-idx="${idx}"
+            onclick="selectDir(${idx}, '${d.key}')">
+            ${d.label}
+          </button>
+        `).join('')}
+      </div>
+      <div class="memo-row">
+        <label>비고</label>
+        <textarea id="memo_${idx}" placeholder="메모 입력..." rows="1"
+          oninput="saveMemo(${idx}, this.value)"></textarea>
+      </div>
+    `;
+    section.appendChild(card);
+
+    if (currentCheck[name]) {
+      const { dir, memo } = currentCheck[name];
+      if (dir) highlightBtn(idx, dir);
+      if (memo) document.getElementById(`memo_${idx}`).value = memo;
+    }
+  });
+}
+
+// ── 방향 선택 ──
+function selectDir(idx, dirKey) {
+  const name = stocks[idx];
+  if (!currentCheck[name]) currentCheck[name] = {};
+  currentCheck[name].dir = dirKey;
+  highlightBtn(idx, dirKey);
+}
+
+function highlightBtn(idx, dirKey) {
+  const btns = document.querySelectorAll(`#btns_${idx} .dir-btn`);
+  btns.forEach(b => {
+    b.classList.toggle('selected', b.dataset.dir === dirKey);
+  });
+}
+
+function saveMemo(idx, val) {
+  const name = stocks[idx];
+  if (!currentCheck[name]) currentCheck[name] = {};
+  currentCheck[name].memo = val;
+}
+
+// ── 이번 주 저장 ──
+function saveRecord() {
+  if (!stocks.length) { alert('대상을 적용하세요.'); return; }
+  const date = document.getElementById('checkDate').value || new Date().toISOString().slice(0,10);
+  const items = stocks.map(name => ({
+    name,
+    dir: currentCheck[name]?.dir || null,
+    memo: currentCheck[name]?.memo || '',
+  }));
+  const existing = records.findIndex(r => r.date === date);
+  if (existing >= 0) {
+    if (!confirm(`${date} 기록이 이미 있습니다. 덮어쓰시겠습니까?`)) return;
+    records[existing] = { date, items };
+  } else {
+    records.unshift({ date, items });
+  }
+  saveLocal();
+  document.getElementById('statusMsg').textContent = `✅ ${date} 저장 완료`;
+}
+
+// ── 로컬 저장 ──
+function saveLocal() {
+  try {
+    localStorage.setItem('stockTrackerData', JSON.stringify({ stocks, records }));
+  } catch(e) {}
+}
+
+// ── 기록 모달 ──
+function openHistory() {
+  renderHistoryList();
+  document.getElementById('historyModal').classList.add('open');
+}
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('open');
+}
+
+function renderHistoryList() {
+  const list = document.getElementById('historyList');
+  if (!records.length) {
+    list.innerHTML = '<div class="empty-msg">저장된 기록이 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = records.map((r, ri) => {
+    const chips = r.items.map(it => {
+      const cls = it.dir ? it.dir : 'none';
+      const label = it.dir ? DIRS.find(d=>d.key===it.dir)?.label : '미체크';
+      return `<span class="h-chip ${cls}">${it.name} ${label}</span>`;
+    }).join('');
+    return `
+      <div class="history-item" onclick="loadRecord(${ri})">
+        <div class="h-date">
+          📅 ${r.date}
+          <button class="h-del" onclick="event.stopPropagation(); deleteRecord(${ri})">삭제</button>
+        </div>
+        <div class="h-summary">${chips}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function loadRecord(ri) {
+  const r = records[ri];
+  document.getElementById('checkDate').value = r.date;
+  currentCheck = {};
+  r.items.forEach(it => {
+    currentCheck[it.name] = { dir: it.dir, memo: it.memo };
+  });
+  const names = r.items.map(i => i.name);
+  stocks = names;
+  inputCount = Math.max(stocks.length, 7);
+  renderStockInputs();
+  renderCheckCards();
+  closeHistory();
+  document.getElementById('statusMsg').textContent = `📂 ${r.date} 기록 불러옴`;
+}
+
+function deleteRecord(ri) {
+  if (!confirm('이 기록을 삭제하시겠습니까?')) return;
+  records.splice(ri, 1);
+  saveLocal();
+  renderHistoryList();
+}
+
+// ── CSV 내보내기 ──
+function exportCSV() {
+  if (!records.length) { alert('저장된 기록이 없습니다.'); return; }
+  const header = ['날짜', '대상', '방향', '비고'];
+  const rows = [header];
+  records.forEach(r => {
+    r.items.forEach(it => {
+      const dirLabel = it.dir ? DIRS.find(d=>d.key===it.dir)?.label || '' : '';
+      rows.push([r.date, it.name, dirLabel, it.memo]);
+    });
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '체크리스트기록.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── 달력 ──
+function openCalendar() {
+  renderCalendar();
+  document.getElementById('calModal').classList.add('open');
+}
+function closeCalendar() {
+  document.getElementById('calModal').classList.remove('open');
+}
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const title = document.getElementById('calTitle');
+  const grid  = document.getElementById('calGrid');
+  title.textContent = `${calYear}년 ${calMonth + 1}월`;
+
+  // 저장된 날짜 Set
+  const savedDates = new Set(records.map(r => r.date));
+
+  const dayHeaders = ['일','월','화','수','목','금','토'];
+  let html = dayHeaders.map(d => `<div class="cal-day-header">${d}</div>`).join('');
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay(); // 0=일
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 빈 칸
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div class="cal-cell"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday     = dateStr === today;
+    const hasRecord   = savedDates.has(dateStr);
+    let cls = 'cal-cell in-month';
+    if (isToday)   cls += ' today';
+    if (hasRecord) cls += ' has-record';
+    html += `<div class="${cls}" title="${hasRecord ? '기록 있음' : ''}">${d}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+// 모달 바깥 클릭 닫기
+document.getElementById('historyModal').addEventListener('click', function(e) {
+  if (e.target === this) closeHistory();
+});
+document.getElementById('calModal').addEventListener('click', function(e) {
+  if (e.target === this) closeCalendar();
+});
+</script>
+</body>
+</html>
